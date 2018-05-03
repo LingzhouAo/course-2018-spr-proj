@@ -47,8 +47,7 @@ class correlation(dml.Algorithm):
             norm_hospitals.append(h['norm_hospitals'])
             norm_stores.append(h['norm_stores'])
             norm_rate.append(h['norm_rate'])
-            # 30% price 20% crime 20% subway 10% school 10% stores 10% hospitals
-            houses_score.append(h['norm_rate']*0.3+ h['norm_crime']*0.2 + h['norm_subway']*0.2 + h['norm_school']*0.1 + h['norm_stores']*0.1 + h['norm_hospitals']*0.1)
+            houses_score.append((h['norm_rate']+ h['norm_crime'] + h['norm_subway']+ h['norm_school']+ h['norm_stores'] + h['norm_hospitals'])/5)
         
 
         crime_score = scipy.stats.pearsonr(houses_score, norm_crime)

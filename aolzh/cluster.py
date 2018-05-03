@@ -10,6 +10,7 @@ from sklearn.cluster import KMeans
 from sklearn import preprocessing
 import numpy as np
 from vincenty import vincenty
+from gmplot import gmplot
 
 class cluster(dml.Algorithm):
     contributor = 'aolzh'
@@ -43,8 +44,7 @@ class cluster(dml.Algorithm):
                     price.append(h['Price'])
                     name.append(h['address'])
                     break
-            # 30% price 20% crime 20% subway 10% school 10% stores 10% hospitals
-            houses_score = (n_h['norm_rate']*0.3+ n_h['norm_crime']*0.2 + n_h['norm_subway']*0.2 + n_h['norm_school']*0.1 + n_h['norm_stores']*0.1 + n_h['norm_hospitals']*0.1)
+            houses_score = (n_h['norm_rate']*0.25 + n_h['norm_subway']*0.25 + n_h['norm_school']*0.25 + n_h['norm_stores']*0.25 + n_h['norm_hospitals']*0.25)
 
             test_data.append([houses_score,location[0],location[1]])
 
@@ -100,14 +100,38 @@ class cluster(dml.Algorithm):
                 cluster_longitude[i].append(longitude[k_cluster_index[i][j]])
                 cluster_latitude[i].append(latitude[k_cluster_index[i][j]])
                 cluster_house_name[i].append(name[k_cluster_index[i][j]])
-            label_name.append([total_score/len(k_cluster_index[i]), total_price/len(k_cluster_index[i])])
+            label_name.append([total_score/len(k_cluster_index[i]), int(total_price/len(k_cluster_index[i]))])
 
+        new_label = sorted(label_name,key = lambda k: k[0])
+        rank = []
+        for i in range(cluster_num):
+            rank.append((new_label.index(label_name[i]))/2+0.5)
+
+
+        urls = []
+        for i in range(cluster_num):
+            urls.append([])
+            for j in range(len(k_cluster_index[i])):
+                s = 'https://www.zillow.com/homes/'
+                new_ad = (''.join(cluster_house_name[i][j].split(','))).replace(' ','-')
+                s += new_ad+'_rb'
+                urls[i].append(s)
+
+        color = ['#ff0000','#ffd800','#50ff00','#00ffbb','#00a5ff','#0011ff','#d000ff','#ff008c','#000000','#ffafaf']
+        gmap = gmplot.GoogleMapPlotter(40.7128, -74.0060, 12)
+        for i in range(cluster_num):
+            temp_la = []
+            temp_lo = []
+            for j in range(len(k_cluster_index[i])):
+                temp_la.append(cluster_latitude[i][j])
+                temp_lo.append(cluster_longitude[i][j])
+            gmap.scatter(temp_la, temp_lo, color[i], size=150, marker=False)
+        gmap.draw("my_map.html")
         res = []
         for i in range(cluster_num):
             for j in range(len(k_cluster_index[i])):
-                
-                res.append({'label':label_name[i],'name': cluster_house_name[i][j],'latitude':cluster_latitude[i][j],'longitude':cluster_longitude[i][j]})
-
+                res.append({'url':urls[i][j],'rank':rank[i],'label':label_name[i],'name': cluster_house_name[i][j],'latitude':cluster_latitude[i][j],'longitude':cluster_longitude[i][j],'cluster':i,'price':price[k_cluster_index[i][j]],'score':score[k_cluster_index[i][j]]})
+        print(res)
         repo.dropCollection("Cluster")
         repo.createCollection("Cluster")
         repo["aolzh.Cluster"].insert_many(res)
